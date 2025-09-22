@@ -1,0 +1,149 @@
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+
+// Layouts
+import DashboardLayout from './layouts/DashboardLayout';
+import AuthLayout from './layouts/AuthLayout';
+
+// Pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+
+// Types
+type PrivateRouteProps = {
+  children?: React.ReactNode;
+};
+
+type AuthRouteProps = {
+  children: React.ReactNode;
+  title: string;
+  subtitle?: string;
+};
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#3f51b5',
+    },
+    secondary: {
+      main: '#f50057',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontSize: '2.5rem',
+      fontWeight: 500,
+    },
+    h2: {
+      fontSize: '2rem',
+      fontWeight: 500,
+    },
+    h3: {
+      fontSize: '1.75rem',
+      fontWeight: 500,
+    },
+  },
+});
+
+// Componente de ruta protegida
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
+  // Aquí deberías implementar la lógica de autenticación
+  const isAuthenticated = true; // Cambiar por tu lógica de autenticación real
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
+};
+
+// Componente de ruta de autenticación
+const AuthRoute: React.FC<AuthRouteProps> = ({ children, title, subtitle = '' }) => {
+  // Aquí deberías implementar la lógica de autenticación
+  const isAuthenticated = false; // Cambiar por tu lógica de autenticación real
+
+  return !isAuthenticated ? (
+    <AuthLayout title={title} subtitle={subtitle}>
+      {children}
+    </AuthLayout>
+  ) : (
+    <Navigate to="/dashboard" replace />
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <Router>
+            <Routes>
+              {/* Ruta de inicio redirige a dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+              {/* Rutas públicas */}
+              <Route
+                path="/login"
+                element={
+                  <AuthRoute title="Iniciar Sesión" subtitle="Ingresa tus credenciales para acceder">
+                    <LoginPage />
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <AuthRoute title="Registro" subtitle="Crea una nueva cuenta">
+                    <RegisterPage />
+                  </AuthRoute>
+                }
+              />
+
+              {/* Rutas protegidas */}
+              <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+                <Route path="dashboard" element={<div>Dashboard Principal</div>} />
+                <Route path="users" element={<div>Página de Usuarios</div>} />
+                <Route path="appointments" element={<div>Página de Citas</div>} />
+                <Route path="services" element={<div>Página de Servicios</div>} />
+                {/* Agrega aquí más rutas protegidas */}
+              </Route>
+
+              {/* Ruta 404 - Not Found */}
+              <Route 
+                path="*" 
+                element={
+                  <div style={{ padding: '2rem' }}>
+                    <h1>404 - Página no encontrada</h1>
+                    <p>La página que estás buscando no existe.</p>
+                  </div>
+                } 
+              />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;
