@@ -12,6 +12,10 @@ import AuthLayout from './layouts/AuthLayout';
 // Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
+import UsersPage from './pages/users/UsersPage';
+import AppointmentsPage from './pages/appointments/AppointmentsPage';
+import ServicesPage from './pages/services/ServicesPage';
 
 // Types
 type PrivateRouteProps = {
@@ -121,10 +125,10 @@ const App: React.FC = () => {
 
               {/* Rutas protegidas */}
               <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-                <Route path="dashboard" element={<div>Dashboard Principal</div>} />
-                <Route path="users" element={<div>Página de Usuarios</div>} />
-                <Route path="appointments" element={<div>Página de Citas</div>} />
-                <Route path="services" element={<div>Página de Servicios</div>} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="appointments" element={<AppointmentsPage />} />
+                <Route path="services" element={<ServicesPage />} />
                 {/* Agrega aquí más rutas protegidas */}
               </Route>
 
