@@ -1,21 +1,34 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { login as loginService, register as registerService, getCurrentUser, logout as logoutService, updatePassword as updatePasswordService } from '../services/auth/auth.service';
-import type { User } from '../services/user/user.service';
+import { login as loginService, register as registerService, getCurrentUser, logout as logoutService, updatePassword as updatePasswordService, type AuthResponse } from '../services/auth/auth.service';
+import { getToken, removeToken, setUser as setStoredUser, removeUser } from '../utils/auth';
+import api from '../api/axios';
+
+export interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthResponse>;
   register: (userData: {
     firstName: string;
     lastName: string;
     email: string;
     password: string;
     phone?: string;
-  }) => Promise<void>;
+  }) => Promise<AuthResponse>;
   logout: () => void;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
@@ -28,110 +41,133 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
 
   // Check if user is logged in on initial load
-  const { isLoading: isLoadingUser } = useQuery<User | null>({
+  const { data: userData } = useQuery<AuthResponse['user'] | null>({
     queryKey: ['currentUser'],
-    queryFn: async (): Promise<User | null> => {
+    queryFn: async (): Promise<AuthResponse['user'] | null> => {
+      // Only try to get user if we have a token
+      const token = getToken();
+      if (!token) return null;
+      
       try {
-        const userData = await getCurrentUser();
-        // Map the auth user to the full User type with defaults
-        const user: User = {
-          ...userData,
-          isActive: true, // Set default value if not provided
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        return user;
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          // Update the auth header with the stored token
+          const token = getToken();
+          if (token) {
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          }
+          return currentUser;
+        }
+        return null;
       } catch (error) {
+        console.error('Error getting current user:', error);
+        removeToken();
         return null;
       }
     },
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Update user state when query completes
+  // Update user state when userData changes
   useEffect(() => {
-    if (!isLoadingUser) {
-      const fetchUser = async () => {
-        try {
-          const userData = await queryClient.fetchQuery<User | null>({
-            queryKey: ['currentUser'],
-            queryFn: async (): Promise<User | null> => {
-              try {
-                const data = await getCurrentUser();
-                return {
-                  ...data,
-                  isActive: true,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                };
-              } catch (error) {
-                return null;
-              }
-            }
-          });
-          setUser(userData);
-        } catch (error) {
-          setUser(null);
-        }
-      };
-      fetchUser();
-    }
-  }, [isLoadingUser, queryClient]);
-
-  useEffect(() => {
-    if (!isLoadingUser) {
-      setIsLoading(false);
-    }
-  }, [isLoadingUser]);
-
-  const login = async (email: string, password: string) => {
-    try {
-      const { user: userData } = await loginService({ email, password });
-      // Map the auth user to the full User type with defaults
+    if (userData) {
       const user: User = {
         ...userData,
-        isActive: true, // Set default value if not provided
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       setUser(user);
-      // The token is already set in the axios interceptor
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+      setStoredUser(user);
+      setUser(null);
     }
-  };
+    setIsLoading(false);
+  }, [userData]);
 
-  const register = async (registerData: {
+  const login = useCallback(async (email: string, password: string): Promise<AuthResponse> => {
+    try {
+      console.log('AuthContext: Attempting login with:', { email });
+      const response = await loginService({ email, password });
+      
+      if (!response || !response.user) {
+        throw new Error('Invalid response from server');
+      }
+      
+      console.log('AuthContext: Login successful, user:', response.user.email);
+      
+      // Update user state
+      const userData = {
+        ...response.user,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      setUser(userData);
+      setStoredUser(userData);
+      
+      // Invalidate queries to refresh any cached data
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      
+      return response;
+    } catch (error: any) {
+      console.error('AuthContext: Login failed:', error);
+      // Clear any partial auth state on error
+      setUser(null);
+      removeUser();
+      throw error; // Re-throw to be handled by the component
+    }
+  }, [queryClient]);
+
+  const register = useCallback(async (registerData: {
     firstName: string;
     lastName: string;
     email: string;
     password: string;
     phone?: string;
-  }) => {
+  }): Promise<AuthResponse> => {
     try {
-      const { user: userData } = await registerService(registerData);
-      // Map the auth user to the full User type with defaults
-      const user: User = {
-        ...userData,
-        isActive: true, // Set default value if not provided
+      console.log('AuthContext: Attempting registration with:', { email: registerData.email });
+      const response = await registerService(registerData);
+      
+      if (!response || !response.user || !response.token) {
+        throw new Error('Invalid response from server');
+      }
+      
+      console.log('AuthContext: Registration successful, user:', response.user.email);
+      
+      // Update user state
+      const userData = {
+        ...response.user,
+        isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      setUser(user);
-      // The token is already set in the axios interceptor
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
+      
+      setUser(userData);
+      setStoredUser(userData);
+      
+      // Invalidate queries to refresh any cached data
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      
+      return response;
+    } catch (error: any) {
+      console.error('AuthContext: Registration failed:', error);
+      // Clear any partial auth state on error
+      setUser(null);
+      removeUser();
+      throw error; // Re-throw to be handled by the component
     }
-  };
+  }, [queryClient]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     logoutService();
     setUser(null);
+    removeUser();
     queryClient.clear();
-  };
+  }, [queryClient]);
 
   const updatePassword = async (currentPassword: string, newPassword: string) => {
     try {
@@ -142,7 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
@@ -150,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     register,
     logout,
     updatePassword,
-  };
+  }), [user, isLoading, login, register, logout, updatePassword]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

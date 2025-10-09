@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -29,6 +29,8 @@ import {
   FormHelperText,
   Switch,
   FormControlLabel,
+  CircularProgress as MuiCircularProgress,
+  Alert as MuiAlert
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import {
@@ -37,90 +39,65 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Category as CategoryIcon,
   AccessTime as DurationIcon,
   AttachMoney as PriceIcon,
 } from '@mui/icons-material';
+import api from '../../api/axios';
 
 interface Service {
-  id: number;
+  id: string;
   name: string;
-  category: string;
+  description: string;
   duration: number;
-  price: number;
-  active: boolean;
-  description?: string;
+  price: string; // Price comes as string from the API
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  deletedAt: string | null;
 }
 
-// Datos de ejemplo - en una aplicación real, estos vendrían de una API
-const services: Service[] = [
-  { 
-    id: 1, 
-    name: 'Corte de Cabello', 
-    category: 'Cortes', 
-    duration: 45, 
-    price: 300,
-    active: true
-  },
-  { 
-    id: 2, 
-    name: 'Barba', 
-    category: 'Barba', 
-    duration: 30, 
-    price: 150,
-    active: true
-  },
-  { 
-    id: 3, 
-    name: 'Tinte', 
-    category: 'Coloración', 
-    duration: 120, 
-    price: 600,
-    active: true
-  },
-  { 
-    id: 4, 
-    name: 'Manicure', 
-    category: 'Uñas', 
-    duration: 60, 
-    price: 250,
-    active: false
-  },
-  { 
-    id: 5, 
-    name: 'Pedicure', 
-    category: 'Uñas', 
-    duration: 75, 
-    price: 300,
-    active: true
-  },
-];
-
-const categories = [
-  'Cortes',
-  'Barba',
-  'Coloración',
-  'Tratamientos',
-  'Uñas',
-  'Otros'
-];
-
 export default function ServicesPage() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Service, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'deletedAt'>>({
     name: '',
-    category: '',
-    duration: 30,
-    price: 0,
     description: '',
-    active: true
+    duration: 30,
+    price: '0.00',
+    is_active: true
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const fetchServices = async () => {
+    try {
+      const response = await api.get('/services/');
+      // Access services from response.data.data.services according to the API response structure
+      const servicesData = response.data.data?.services || [];
+      console.log('Services to render:', servicesData);
+      setServices(Array.isArray(servicesData) ? servicesData : []);
+      setError(null);
+      return servicesData;
+    } catch (err) {
+      console.error('Error al obtener los servicios:', err);
+      setError('No se pudieron cargar los servicios. Intente nuevamente más tarde.');
+      setServices([]); // Ensure services is always an array
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
 
   const isEditMode = !!selectedService;
 
@@ -132,6 +109,24 @@ export default function ServicesPage() {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
+  // Mostrar estado de carga
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <MuiCircularProgress />
+      </Box>
+    );
+  }
+
+  // Mostrar mensaje de error si hay un error
+  if (error) {
+    return (
+      <Box p={3}>
+        <MuiAlert severity="error">{error}</MuiAlert>
+      </Box>
+    );
+  }
 
   const handleClickMenu = (event: React.MouseEvent<HTMLElement>, service: Service) => {
     setAnchorEl(event.currentTarget);
@@ -147,21 +142,19 @@ export default function ServicesPage() {
       setSelectedService(service);
       setFormData({
         name: service.name,
-        category: service.category,
+        description: service.description || '',
         duration: service.duration,
         price: service.price,
-        description: service.description || '',
-        active: service.active
+        is_active: service.is_active
       });
     } else {
       setSelectedService(null);
       setFormData({
         name: '',
-        category: '',
-        duration: 30,
-        price: 0,
         description: '',
-        active: true
+        duration: 30,
+        price: '0.00',
+        is_active: true
       });
     }
     setFormErrors({});
@@ -173,46 +166,71 @@ export default function ServicesPage() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'price' || name === 'duration' ? parseFloat(value) || 0 : value
-    });
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? value.toString() : value
+    }));
   };
 
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name as string]: value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
+  
   const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: checked
-    });
+    }));
   };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-    if (!formData.category) errors.category = 'La categoría es requerida';
-    if (formData.duration <= 0) errors.duration = 'La duración debe ser mayor a 0';
-    if (formData.price < 0) errors.price = 'El precio no puede ser negativo';
+    
+    const duration = parseFloat(formData.duration.toString());
+    if (isNaN(duration) || duration <= 0) {
+      errors.duration = 'La duración debe ser mayor a 0';
+    }
+    
+    const price = parseFloat(formData.price.toString());
+    if (isNaN(price) || price <= 0) {
+      errors.price = 'El precio debe ser mayor a 0';
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log('Datos del servicio:', formData);
-      // Aquí iría la lógica para guardar el servicio
-      handleCloseDialog();
+      try {
+        const serviceData = {
+          ...formData,
+          price: parseFloat(formData.price.toString()) // Ensure price is a number
+        };
+        
+        if (isEditMode && selectedService) {
+          // Update existing service
+          await api.put(`/services/${selectedService.id}`, serviceData);
+        } else {
+          // Create new service
+          await api.post('/services/', serviceData);
+        }
+        
+        // Refresh services list
+        fetchServices();
+        handleCloseDialog();
+      } catch (error) {
+        console.error('Error al guardar el servicio:', error);
+        setError('Ocurrió un error al guardar el servicio. Por favor, intente de nuevo.');
+      }
     }
   };
 
@@ -257,17 +275,14 @@ export default function ServicesPage() {
             }}
             sx={{ width: 300 }}
           />
-          <Button variant="outlined" startIcon={<CategoryIcon />}>
-            Categorías
-          </Button>
         </Box>
-
+          
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Nombre</TableCell>
-                <TableCell>Categoría</TableCell>
+                <TableCell>Descripcion</TableCell>
                 <TableCell align="right">Duración (min)</TableCell>
                 <TableCell align="right">Precio</TableCell>
                 <TableCell>Estado</TableCell>
@@ -280,30 +295,13 @@ export default function ServicesPage() {
                 .map((service) => (
                   <TableRow key={service.id} hover>
                     <TableCell>{service.name}</TableCell>
+                    <TableCell>{service.description}</TableCell>
+                    <TableCell>{service.duration} min</TableCell>
+                    <TableCell>${parseFloat(service.price).toFixed(2)}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={service.category} 
-                        size="small" 
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box display="flex" alignItems="center" justifyContent="flex-end">
-                        <DurationIcon color="action" sx={{ mr: 1 }} />
-                        {service.duration} min
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box display="flex" alignItems="center" justifyContent="flex-end">
-                        <PriceIcon color="action" sx={{ mr: 1 }} />
-                        ${service.price.toFixed(2)}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={service.active ? 'Activo' : 'Inactivo'} 
-                        color={service.active ? 'success' : 'default'}
-                        size="small"
+                        label={service.is_active ? 'Activo' : 'Inactivo'} 
+                        color={service.is_active ? 'success' : 'default'}
                       />
                     </TableCell>
                     <TableCell align="right">
@@ -398,25 +396,6 @@ export default function ServicesPage() {
                 helperText={formErrors.name}
               />
               
-              <FormControl fullWidth variant="outlined" error={!!formErrors.category}>
-                <InputLabel id="category-label">Categoría</InputLabel>
-                <Select
-                  labelId="category-label"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleSelectChange}
-                  input={<OutlinedInput label="Categoría" />}
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category} value={category}>
-                      {category}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {formErrors.category && (
-                  <FormHelperText>{formErrors.category}</FormHelperText>
-                )}
-              </FormControl>
               
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
@@ -468,7 +447,7 @@ export default function ServicesPage() {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={formData.active}
+                    checked={formData.is_active}
                     onChange={handleSwitchChange}
                     name="active"
                     color="primary"

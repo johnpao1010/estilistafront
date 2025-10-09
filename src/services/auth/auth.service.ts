@@ -27,30 +27,108 @@ export interface AuthResponse {
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   try {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    const { token, user } = response.data;
+    console.log('Attempting login with credentials:', credentials);
+    const response = await api.post('/auth/login', credentials);
+    
+    console.log('Raw login response:', response);
+    
+    if (!response) {
+      throw new Error('No response from server');
+    }
+    
+    // Handle different response structures
+    let responseData = response.data;
+    
+    // If the response is nested under a 'data' property
+    if (responseData && responseData.data) {
+      responseData = responseData.data;
+    }
+    
+    console.log('Processed login response data:', responseData);
+    
+    if (!responseData) {
+      console.error('No data in response:', response);
+      throw new Error('No data in server response');
+    }
+    
+    // Check for token in different possible locations
+    const token = responseData.token || responseData.access_token || responseData.accessToken;
+    const user = responseData.user || responseData.data?.user;
+    
+    if (!token || !user) {
+      console.error('Missing token or user in response:', responseData);
+      throw new Error('Invalid response format: missing token or user data');
+    }
+    
+    console.log('Login successful, user:', user.email);
+    
+    // Create the auth response with the expected format
+    const authResponse: AuthResponse = {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || user.first_name || '',
+        lastName: user.lastName || user.last_name || '',
+        role: user.role || 'user',
+        phone: user.phone
+      }
+    };
     
     // Store token and user data
-    setToken(token);
-    setUser(user);
+    setToken(authResponse.token);
+    setUser(authResponse.user);
     
-    return response.data;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+    // Set default authorization header
+    api.defaults.headers.common['Authorization'] = `Bearer ${authResponse.token}`;
+    
+    return authResponse;
+  } catch (error: any) {
+    console.error('Login error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+    });
+    
+    let errorMessage = 'Error during login';
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      if (error.response.status === 401) {
+        errorMessage = 'Credenciales inválidas';
+      } else if (error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else {
+        errorMessage = `Error del servidor (${error.response.status})`;
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      errorMessage = 'No se pudo conectar con el servidor';
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 
 export const register = async (userData: RegisterData): Promise<AuthResponse> => {
   try {
     const response = await api.post<AuthResponse>('/auth/register', userData);
-    const { token, user } = response.data;
     
-    // Store token and user data
-    setToken(token);
-    setUser(user);
+    if (response.data && response.data.token && response.data.user) {
+      const { token, user } = response.data;
+      
+      // Store token and user data
+      setToken(token);
+      setUser(user);
+      
+      // Set default authorization header
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      return response.data;
+    }
     
-    return response.data;
+    throw new Error('Invalid response from server');
   } catch (error) {
     console.error('Registration error:', error);
     throw error;

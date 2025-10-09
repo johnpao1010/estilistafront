@@ -2,8 +2,10 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -70,11 +72,18 @@ const theme = createTheme({
 
 // Componente de ruta protegida
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  // Aquí deberías implementar la lógica de autenticación
-  const isAuthenticated = true; // Cambiar por tu lógica de autenticación real
+  const { user, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;
@@ -82,15 +91,24 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
 // Componente de ruta de autenticación
 const AuthRoute: React.FC<AuthRouteProps> = ({ children, title, subtitle = '' }) => {
-  // Aquí deberías implementar la lógica de autenticación
-  const isAuthenticated = false; // Cambiar por tu lógica de autenticación real
+  const { user, isLoading } = useAuth();
 
-  return !isAuthenticated ? (
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
     <AuthLayout title={title} subtitle={subtitle}>
       {children}
     </AuthLayout>
-  ) : (
-    <Navigate to="/dashboard" replace />
   );
 };
 

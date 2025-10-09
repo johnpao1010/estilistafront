@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import { getToken, removeToken } from '../utils/auth';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1'; // Update with your backend URL
+const API_BASE_URL = 'http://localhost:3001/api/v1'; // Update with your backend URL
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
