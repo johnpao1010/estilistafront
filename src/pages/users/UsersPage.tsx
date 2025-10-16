@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,10 +14,11 @@ import {
   TableRow,
   TablePagination,
   IconButton,
-  Tooltip,
   Menu,
   MenuItem,
   Chip,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,23 +26,20 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-
-// Datos de ejemplo - en una aplicación real, estos vendrían de una API
-const users = [
-  { id: 1, name: 'Juan Pérez', email: 'juan@example.com', role: 'Admin', status: 'Activo', joinDate: '2023-01-15' },
-  { id: 2, name: 'María García', email: 'maria@example.com', role: 'Estilista', status: 'Activo', joinDate: '2023-02-20' },
-  { id: 3, name: 'Carlos López', email: 'carlos@example.com', role: 'Recepcionista', status: 'Inactivo', joinDate: '2023-03-10' },
-  { id: 4, name: 'Ana Martínez', email: 'ana@example.com', role: 'Estilista', status: 'Activo', joinDate: '2023-04-05' },
-  { id: 5, name: 'Luis Rodríguez', email: 'luis@example.com', role: 'Cliente', status: 'Activo', joinDate: '2023-05-12' },
-];
+import { userService, type User } from '../../services/userService';
 
 export default function UsersPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -52,7 +50,7 @@ export default function UsersPage() {
     setPage(0);
   };
 
-  const handleClickMenu = (event: React.MouseEvent<HTMLElement>, userId: number) => {
+  const handleClickMenu = (event: React.MouseEvent<HTMLElement>, userId: string) => {
     setAnchorEl(event.currentTarget);
     setSelectedUserId(userId);
   };
@@ -67,15 +65,68 @@ export default function UsersPage() {
     handleCloseMenu();
   };
 
-  const handleDelete = () => {
-    // Lógica para eliminar usuario
-    console.log('Eliminar usuario:', selectedUserId);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await userService.getUsers();
+      setUsers(data);
+    } catch (err) {
+      console.error('Error loading users:', err);
+      setError('Error al cargar los usuarios. Por favor, intente de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleRefresh = () => {
+    fetchUsers();
+  };
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  const filteredUsers = users.filter(user => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      user.phone.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const handleView = async () => {
+    if (!selectedUserId) return;
+    try {
+      const user = await userService.getUserById(selectedUserId);
+      console.log('Ver usuario:', user);
+      // Aquí podrías abrir un modal o navegar a una página de detalles
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
     handleCloseMenu();
   };
 
-  const handleView = () => {
-    // Lógica para ver detalles del usuario
-    console.log('Ver usuario:', selectedUserId);
+  const handleDelete = async () => {
+    if (!selectedUserId) return;
+    
+    if (window.confirm('¿Está seguro de que desea eliminar este usuario?')) {
+      try {
+        await userService.deleteUser(selectedUserId);
+        // Actualizar la lista de usuarios después de eliminar
+        fetchUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setError('Error al eliminar el usuario. Por favor, intente de nuevo.');
+      }
+    }
     handleCloseMenu();
   };
 
@@ -83,9 +134,20 @@ export default function UsersPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Gestión de Usuarios</Typography>
-        <Button variant="contained" startIcon={<AddIcon />}>
-          Nuevo Usuario
-        </Button>
+        <Box>
+          <Button 
+            variant="outlined" 
+            startIcon={<RefreshIcon />} 
+            onClick={handleRefresh}
+            disabled={loading}
+            sx={{ mr: 2 }}
+          >
+            Actualizar
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />}>
+            Nuevo Usuario
+          </Button>
+        </Box>
       </Box>
 
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -93,6 +155,8 @@ export default function UsersPage() {
           fullWidth
           variant="outlined"
           placeholder="Buscar usuarios..."
+          value={searchTerm}
+          onChange={handleSearch}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -102,6 +166,19 @@ export default function UsersPage() {
           }}
           sx={{ mb: 3, maxWidth: 400 }}
         />
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Box>
 
         <TableContainer>
           <Table>
@@ -116,48 +193,66 @@ export default function UsersPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((user) => (
-                  <TableRow key={user.id} hover>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={user.role} 
-                        size="small" 
-                        color={user.role === 'Admin' ? 'primary' : 'default'}
-                        variant={user.role === 'Admin' ? 'filled' : 'outlined'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={user.status} 
-                        color={user.status === 'Activo' ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{new Date(user.joinDate).toLocaleDateString()}</TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={(e) => handleClickMenu(e, user.id)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {filteredUsers.length > 0 ? (
+                filteredUsers
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((user) => (
+                    <TableRow key={user.id} hover>
+                      <TableCell>{`${user.first_name} ${user.last_name}`}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={user.role} 
+                          size="small" 
+                          color={user.role === 'admin' ? 'primary' : 'default'}
+                          variant={user.role === 'admin' ? 'filled' : 'outlined'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={user.is_active ? 'Activo' : 'Inactivo'} 
+                          color={user.is_active ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell align="right">
+                        <IconButton 
+                          onClick={(e) => handleClickMenu(e, user.id)}
+                          disabled={loading}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                    {searchTerm ? 'No se encontraron usuarios que coincidan con la búsqueda' : 'No hay usuarios registrados'}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={users.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={filteredUsers.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Filas por página:"
+              labelDisplayedRows={({ from, to, count }) => {
+                const countText = count !== -1 ? count.toString() : `más de ${to}`;
+                return `${from}-${to} de ${countText}`;
+              }}
+            />
+          </Box>
+        )}
       </Paper>
 
       <Menu
@@ -173,13 +268,13 @@ export default function UsersPage() {
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={handleView}>
-          <VisibilityIcon sx={{ mr: 1 }} /> Ver Detalles
+        <MenuItem onClick={handleView} disabled={loading}>
+          <VisibilityIcon sx={{ mr: 1, color: 'text.secondary' }} /> Ver Detalles
         </MenuItem>
-        <MenuItem onClick={handleEdit}>
-          <EditIcon sx={{ mr: 1 }} /> Editar
+        <MenuItem onClick={handleEdit} disabled={loading}>
+          <EditIcon sx={{ mr: 1, color: 'primary.main' }} /> Editar
         </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDelete} disabled={loading} sx={{ color: 'error.main' }}>
           <DeleteIcon sx={{ mr: 1 }} /> Eliminar
         </MenuItem>
       </Menu>
