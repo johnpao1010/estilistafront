@@ -268,6 +268,23 @@ export default function AppointmentsPage() {
     }
   };
 
+  const handleDayClick = (day: Date) => {
+    // Format date as YYYY-MM-DD for the appointment form
+    const formattedDate = day.toISOString().split('T')[0];
+    
+    // Reset new appointment form and set the date
+    setNewAppointment({
+      serviceId: '',
+      employeeId: '',
+      appointmentDate: formattedDate,
+      startTime: '',
+      notes: ''
+    });
+    
+    // Open the new appointment dialog
+    setNewAppointmentDialog(true);
+  };
+
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
@@ -542,7 +559,18 @@ export default function AppointmentsPage() {
                         const monthName = day.toLocaleDateString('es-ES', { month: 'short' });
                         
                         return (
-                          <Card key={index} sx={{ minHeight: 200 }}>
+                          <Card 
+                            key={index} 
+                            sx={{ 
+                              minHeight: 200,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: 'action.hover',
+                                boxShadow: 4
+                              }
+                            }}
+                            onClick={() => handleDayClick(day)}
+                          >
                             <CardContent>
                               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                                 {dayName} {dayNumber} {monthName}
@@ -559,7 +587,10 @@ export default function AppointmentsPage() {
                                       size="small"
                                       color={statusColors[app.status] as any}
                                       sx={{ mb: 0.5, width: '100%', fontSize: '0.7rem' }}
-                                      onClick={(e: React.MouseEvent<HTMLElement>) => handleMenuClick(e, app.id)}
+                                      onClick={(e: React.MouseEvent<HTMLElement>) => {
+                                        e.stopPropagation();
+                                        handleMenuClick(e, app.id);
+                                      }}
                                     />
                                   ))
                                 ) : (

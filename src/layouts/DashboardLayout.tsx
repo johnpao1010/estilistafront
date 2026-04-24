@@ -112,8 +112,8 @@ const getMenuItems = (userRole?: string) => {
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
   ];
   
-  // Hide Users section for employee role
-  if (userRole === 'employee') {
+  // Hide Users section for employee and user roles
+  if (userRole === 'employee' || userRole === 'user') {
     return allItems.filter(item => item.text !== 'Users');
   }
   
