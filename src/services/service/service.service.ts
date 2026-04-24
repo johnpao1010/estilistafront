@@ -1,14 +1,15 @@
 import api from '../../api/axios';
 
 export interface Service {
-  id: number;
+  id: string; // UUID as string
   name: string;
   description?: string;
   duration: number; // in minutes
-  price: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  price: string; // price as string from API
+  is_active: boolean; // matches API response
+  created_at: string; // matches API response
+  updated_at: string; // matches API response
+  deleted_at?: string | null; // matches API response
 }
 
 export interface CreateServiceData {
@@ -24,8 +25,13 @@ export interface UpdateServiceData extends Partial<CreateServiceData> {
 
 export const getAllServices = async (): Promise<Service[]> => {
   try {
-    const response = await api.get<Service[]>('/services');
-    return response.data;
+    const response = await api.get('/services');
+    
+    if (!response.data || !response.data.data || !response.data.data.services) {
+      throw new Error('Invalid API response structure');
+    }
+    
+    return response.data.data.services;
   } catch (error) {
     console.error('Error fetching services:', error);
     throw error;

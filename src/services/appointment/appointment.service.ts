@@ -16,12 +16,12 @@ export interface Appointment {
 }
 
 export interface Service {
-  id: number;
+  id: string; // UUID as string
   name: string;
   description?: string;
   duration: number; // in minutes
-  price: number;
-  isActive: boolean;
+  price: string; // price as string from API
+  is_active: boolean; // matches API response
 }
 
 export interface User {
@@ -54,7 +54,8 @@ export interface AppointmentQueryParams {
 }
 
 export interface CreateAppointmentData {
-  serviceId: number;
+  serviceId: string; // UUID as string
+  employeeId: string; // UUID as string
   appointmentDate: string;
   startTime: string;
   notes?: string;
