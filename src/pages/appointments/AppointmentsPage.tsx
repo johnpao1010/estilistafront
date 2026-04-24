@@ -83,6 +83,7 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [currentAppointment, setCurrentAppointment] = useState<number | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,9 +231,41 @@ export default function AppointmentsPage() {
     setTabValue(newValue);
   };
 
+  // Get current week days
+  const getWeekDays = () => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 6 = Saturday
+    const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Adjust to start on Monday
+    const monday = new Date(today.setDate(diff));
+    
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      weekDays.push(day);
+    }
+    
+    return weekDays;
+  };
+
+  // Get appointments for a specific date
+  const getAppointmentsForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return allAppointments.filter(app => {
+      const appointmentDate = (app as any).appointment_date;
+      return appointmentDate === dateStr;
+    });
+  };
+
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, id: number) => {
     setAnchorEl(event.currentTarget);
     setCurrentAppointment(id);
+    
+    // Find and set the selected appointment for details display
+    const appointment = allAppointments.find(app => app.id === id);
+    if (appointment) {
+      setSelectedAppointment(appointment);
+    }
   };
 
   const handleCloseMenu = () => {
@@ -362,7 +395,7 @@ export default function AppointmentsPage() {
                 sx={{ mb: { xs: 2, sm: 0 } }}
               >
                 <Tab label="Hoy" value="hoy" />
-                <Tab label="Próximas" value="proximas" />
+                <Tab label="Semana" value="semana" />
                 <Tab label="Todas" value="todas" />
               </Tabs>
               
@@ -400,50 +433,179 @@ export default function AppointmentsPage() {
 
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
               <Box sx={{ width: { xs: '100%', md: '66.666%' } }}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Citas del Día
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
-                    {[10, 11, 12, 13, 14, 15, 16, 17, 18].map((hour) => {
-                      console.log(`Rendering hour slot ${hour}:00`);
-                      const hourAppointments = appointments && appointments.length > 0 
-                        ? appointments.filter(app => {
-                            // Parse the start_time field (e.g., "16:00:00") to get hour
-                            const startTime = (app as any).start_time || (app as any).startTime;
-                            const appointmentHour = parseInt(startTime?.split(':')[0] || '0');
-                            console.log(`Appointment ${app.id} at ${(app as any).appointment_date} ${startTime}, hour: ${appointmentHour}, target: ${hour}`);
-                            return appointmentHour === hour;
-                          })
-                        : [];
-                      
-                      console.log(`Found ${hourAppointments.length} appointments for hour ${hour}`);
-                      
-                      return (
-                        <Card key={hour} sx={{ minWidth: 120 }}>
-                          <CardContent>
-                            <Typography variant="subtitle2" color="text.secondary">
-                              {hour}:00
-                            </Typography>
-                            <Box sx={{ mt: 1, minHeight: 100 }}>
-                              {hourAppointments.map(app => (
-                                <Chip
-                                  key={app.id}
-                                  label={`${app.user?.first_name || 'Cliente'} ${app.user?.last_name || ''} - ${app.service?.name || 'Servicio'}`}
-                                  size="medium"
-                                  color={statusColors[app.status] as any}
-                                  sx={{ mb: 0.5, width: '100%', justifyContent: 'flex-start' }}
-                                  icon={statusIcons[app.status]}
-                                  onClick={(e: React.MouseEvent<HTMLElement>) => handleMenuClick(e, app.id)}
+                {tabValue === 'hoy' && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Citas del Día
+                    </Typography>
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: { 
+                        xs: '1fr', 
+                        sm: 'repeat(2, 1fr)', 
+                        md: 'repeat(3, 1fr)', 
+                        lg: 'repeat(4, 1fr)' 
+                      }, 
+                      gap: 2 
+                    }}>
+                      {[10, 11, 12, 13, 14, 15, 16, 17, 18].map((hour) => {
+                        console.log(`Rendering hour slot ${hour}:00`);
+                        const hourAppointments = appointments && appointments.length > 0 
+                          ? appointments.filter(app => {
+                              // Parse the start_time field (e.g., "16:00:00") to get hour
+                              const startTime = (app as any).start_time || (app as any).startTime;
+                              const appointmentHour = parseInt(startTime?.split(':')[0] || '0');
+                              console.log(`Appointment ${app.id} at ${(app as any).appointment_date} ${startTime}, hour: ${appointmentHour}, target: ${hour}`);
+                              return appointmentHour === hour;
+                            })
+                          : [];
+                        
+                        console.log(`Found ${hourAppointments.length} appointments for hour ${hour}`);
+                        
+                        return (
+                          <Card key={hour} sx={{ minHeight: 150 }}>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="h6" color="primary" sx={{ mr: 1 }}>
+                                  {hour}:00
+                                </Typography>
+                                <Chip 
+                                  size="small" 
+                                  label={`${hourAppointments.length} citas`}
+                                  color={hourAppointments.length > 0 ? 'primary' : 'default'}
                                 />
-                              ))}
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                              </Box>
+                              <Box sx={{ minHeight: 80 }}>
+                                {hourAppointments.length > 0 ? (
+                                  hourAppointments.map(app => (
+                                    <Paper
+                                      key={app.id}
+                                      sx={{ 
+                                        p: 1, 
+                                        mb: 1, 
+                                        cursor: 'pointer',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        '&:hover': {
+                                          backgroundColor: 'action.hover',
+                                          borderColor: 'primary.main'
+                                        }
+                                      }}
+                                      onClick={(e: React.MouseEvent<HTMLElement>) => handleMenuClick(e, app.id)}
+                                    >
+                                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                        {statusIcons[app.status]}
+                                        <Typography variant="caption" sx={{ ml: 0.5 }}>
+                                          {(app as any).start_time?.substring(0, 5) || ''}
+                                        </Typography>
+                                      </Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                        {app.user?.first_name} {app.user?.last_name}
+                                      </Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {app.service?.name}
+                                      </Typography>
+                                    </Paper>
+                                  ))
+                                ) : (
+                                  <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    height: 80,
+                                    color: 'text.secondary'
+                                  }}>
+                                    <Typography variant="body2">
+                                      Sin citas
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </Box>
                   </Box>
-                </Box>
+                )}
+
+                {tabValue === 'semana' && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Vista de Semana
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+                      {getWeekDays().map((day, index) => {
+                        const dayAppointments = getAppointmentsForDate(day);
+                        const dayName = day.toLocaleDateString('es-ES', { weekday: 'short' });
+                        const dayNumber = day.getDate();
+                        const monthName = day.toLocaleDateString('es-ES', { month: 'short' });
+                        
+                        return (
+                          <Card key={index} sx={{ minHeight: 200 }}>
+                            <CardContent>
+                              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                {dayName} {dayNumber} {monthName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                {dayAppointments.length} cita{dayAppointments.length !== 1 ? 's' : ''}
+                              </Typography>
+                              <Box sx={{ maxHeight: 140, overflowY: 'auto' }}>
+                                {dayAppointments.length > 0 ? (
+                                  dayAppointments.map(app => (
+                                    <Chip
+                                      key={app.id}
+                                      label={`${(app as any).start_time?.substring(0, 5) || ''} - ${app.user?.first_name || 'Cliente'}`}
+                                      size="small"
+                                      color={statusColors[app.status] as any}
+                                      sx={{ mb: 0.5, width: '100%', fontSize: '0.7rem' }}
+                                      onClick={(e: React.MouseEvent<HTMLElement>) => handleMenuClick(e, app.id)}
+                                    />
+                                  ))
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                                    Sin citas
+                                  </Typography>
+                                )}
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                )}
+
+                {tabValue === 'todas' && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Todas las Citas
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      {appointments && appointments.length > 0 ? (
+                        appointments.map(app => (
+                          <Card key={app.id} sx={{ minWidth: 200, maxWidth: 250 }}>
+                            <CardContent>
+                              <Typography variant="subtitle2">
+                                {(app as any).appointment_date} - {(app as any).start_time?.substring(0, 5) || ''}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {app.user?.first_name} {app.user?.last_name}
+                              </Typography>
+                              <Typography variant="body2">
+                                {app.service?.name}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        ))
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No hay citas programadas
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )}
               </Box>
               
               <Box sx={{ width: { xs: '100%', md: '33.333%' } }}>
@@ -452,9 +614,119 @@ export default function AppointmentsPage() {
                     Detalles de la Cita
                   </Typography>
                   <Paper sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Selecciona una cita para ver los detalles
-                    </Typography>
+                    {selectedAppointment ? (
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                          Información de la Cita
+                        </Typography>
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Fecha y Hora
+                          </Typography>
+                          <Typography variant="body1">
+                            {(selectedAppointment as any).appointment_date} - {(selectedAppointment as any).start_time?.substring(0, 5) || ''}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Cliente
+                          </Typography>
+                          <Typography variant="body1">
+                            {selectedAppointment.user?.first_name} {selectedAppointment.user?.last_name}
+                          </Typography>
+                          {selectedAppointment.user?.email && (
+                            <Typography variant="body2" color="text.secondary">
+                              {selectedAppointment.user.email}
+                            </Typography>
+                          )}
+                          {selectedAppointment.user?.phone && (
+                            <Typography variant="body2" color="text.secondary">
+                              {selectedAppointment.user.phone}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Servicio
+                          </Typography>
+                          <Typography variant="body1">
+                            {selectedAppointment.service?.name}
+                          </Typography>
+                          {selectedAppointment.service?.duration && (
+                            <Typography variant="body2" color="text.secondary">
+                              Duración: {selectedAppointment.service.duration} minutos
+                            </Typography>
+                          )}
+                          {selectedAppointment.service?.price && (
+                            <Typography variant="body2" color="text.secondary">
+                              Precio: ${selectedAppointment.service.price}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Estado
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {statusIcons[selectedAppointment.status]}
+                            <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                              {selectedAppointment.status === 'scheduled' ? 'Programada' :
+                               selectedAppointment.status === 'completed' ? 'Completada' :
+                               selectedAppointment.status === 'cancelled' ? 'Cancelada' :
+                               selectedAppointment.status === 'no-show' ? 'No asistió' : selectedAppointment.status}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {(selectedAppointment as any).notes && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Notas
+                            </Typography>
+                            <Typography variant="body2">
+                              {(selectedAppointment as any).notes}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            startIcon={<EditIcon />}
+                            onClick={() => handleEdit()}
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            color="success"
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => handleComplete()}
+                          >
+                            Completar
+                          </Button>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            color="error"
+                            startIcon={<CancelIcon />}
+                            onClick={() => handleCancel()}
+                          >
+                            Cancelar
+                          </Button>
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Selecciona una cita para ver los detalles
+                      </Typography>
+                    )}
                   </Paper>
                 </Box>
               </Box>

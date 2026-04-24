@@ -104,12 +104,21 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   })
 );
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'Appointments', icon: <AppointmentsIcon />, path: '/appointments' },
-  { text: 'Services', icon: <ServicesIcon />, path: '/services' },
-  { text: 'Users', icon: <UsersIcon />, path: '/users' },
-];
+const getMenuItems = (userRole?: string) => {
+  const allItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Appointments', icon: <AppointmentsIcon />, path: '/appointments' },
+    { text: 'Services', icon: <ServicesIcon />, path: '/services' },
+    { text: 'Users', icon: <UsersIcon />, path: '/users' },
+  ];
+  
+  // Hide Users section for employee role
+  if (userRole === 'employee') {
+    return allItems.filter(item => item.text !== 'Users');
+  }
+  
+  return allItems;
+};
 
 export default function DashboardLayout() {
   const theme = useTheme();
@@ -228,7 +237,7 @@ export default function DashboardLayout() {
         </DrawerHeader>
         <Divider />
         <List>
-          {menuItems.map((item) => (
+          {getMenuItems(user?.role).map((item: any) => (
             <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
                 sx={{
