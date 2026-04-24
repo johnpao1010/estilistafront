@@ -26,8 +26,8 @@ export interface Service {
 
 export interface User {
   id: number;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone?: string;
 }
@@ -84,9 +84,38 @@ export const createAppointment = async (data: CreateAppointmentData): Promise<Ap
   }
 };
 
+// Obtener agenda del empleado
+export const getEmployeeSchedule = async (employeeId: string, startDate?: string, endDate?: string): Promise<Appointment[]> => {
+  try {
+    const params = new URLSearchParams();
+    params.append('employee_id', employeeId);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const response = await api.get(`/appointments/employee?${params}`);
+    return response.data.data.appointments || [];
+  } catch (error) {
+    console.error('Error fetching employee schedule:', error);
+    throw error;
+  }
+};
+
 export const getAllAppointments = async (params: AppointmentQueryParams = {}): Promise<PaginatedResponse<Appointment>> => {
   try {
-    const response = await api.get<PaginatedResponse<Appointment>>('/appointments', { params });
+    const response = await api.get('/appointments', { params });
+    
+    // Handle nested response structure like employee endpoint
+    if (response.data && response.data.data && response.data.data.appointments) {
+      return {
+        data: response.data.data.appointments,
+        total: response.data.results || response.data.data.appointments.length,
+        page: 1,
+        limit: response.data.data.appointments.length,
+        totalPages: 1
+      };
+    }
+    
+    // Handle direct PaginatedResponse structure
     return response.data;
   } catch (error) {
     console.error('Error fetching appointments:', error);

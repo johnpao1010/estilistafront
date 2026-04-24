@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 // Material-UI Components
 import { 
   Box, 
@@ -39,7 +40,8 @@ import {
 // Appointment Service
 import { 
   getAllAppointments, 
-  createAppointment
+  createAppointment,
+  getEmployeeSchedule
 } from '../../services/appointment/appointment.service';
 import type { 
   Appointment, 
@@ -76,10 +78,12 @@ const statusIcons = {
 };
 
 export default function AppointmentsPage() {
+  const { user, loading: authLoading } = useAuth();
   const [tabValue, setTabValue] = useState('hoy');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [currentAppointment, setCurrentAppointment] = useState<number | null>(null);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,20 +104,34 @@ export default function AppointmentsPage() {
       try {
         setLoading(true);
         
-        // Load appointments
+        // Load appointments based on user role
         try {
           console.log('=== STARTING APPOINTMENTS LOADING ===');
-          const appointmentsResponse = await getAllAppointments();
-          console.log('=== RAW API RESPONSE ===', JSON.stringify(appointmentsResponse, null, 2));
-          console.log('=== RESPONSE DATA ===', appointmentsResponse.data);
+          console.log('=== CURRENT USER ===', user);
+          console.log('=== USER ROLE ===', user?.role);
           
-          if (appointmentsResponse.data && (appointmentsResponse.data as any).appointments && Array.isArray((appointmentsResponse.data as any).appointments)) {
-            console.log('=== FOUND ARRAY WITH ===', (appointmentsResponse.data as any).appointments.length, 'APPOINTMENTS');
-            if ((appointmentsResponse.data as any).appointments.length > 0) {
-              console.log('=== FIRST APPOINTMENT ===', (appointmentsResponse.data as any).appointments[0]);
+          let appointmentsData;
+          if (user?.role === 'employee') {
+            // Load all employee's appointments (no date filter)
+            const employeeId = user.id.toString(); // Use current user's ID
+            console.log('=== LOADING ALL EMPLOYEE APPOINTMENTS FOR ===', employeeId);
+            appointmentsData = await getEmployeeSchedule(employeeId); // No date parameters
+          } else {
+            // Load all appointments (admin view)
+            const response = await getAllAppointments();
+            appointmentsData = response.data || [];
+          }
+          
+          console.log('=== RAW API RESPONSE ===', JSON.stringify(appointmentsData, null, 2));
+          console.log('=== RESPONSE DATA ===', appointmentsData);
+          
+          if (appointmentsData && Array.isArray(appointmentsData)) {
+            console.log('=== FOUND ARRAY WITH ===', appointmentsData.length, 'APPOINTMENTS');
+            if (appointmentsData.length > 0) {
+              console.log('=== FIRST APPOINTMENT ===', appointmentsData[0]);
             }
             
-            const appointments = (appointmentsResponse.data as any).appointments;
+            const appointments = appointmentsData;
             console.log('Appointments array length:', appointments?.length || 0);
             
             // Log individual appointments
@@ -130,9 +148,10 @@ export default function AppointmentsPage() {
               });
             });
             
-            setAppointments(appointments);
+            setAllAppointments(appointments);
           } else {
             console.log('=== NOT AN ARRAY OR NO DATA ===');
+            setAllAppointments([]);
             setAppointments([]);
           }
         } catch (appointmentErr) {
@@ -185,7 +204,27 @@ export default function AppointmentsPage() {
     };
 
     loadData();
-  }, []);
+  }, [user]);
+
+  // Filter appointments by selected date
+  useEffect(() => {
+    if (selectedDate && allAppointments.length > 0) {
+      const selectedDateStr = selectedDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      console.log('Filtering appointments for date:', selectedDateStr);
+      
+      const filteredAppointments = allAppointments.filter((app: any) => {
+        const appointmentDate = app.appointment_date;
+        console.log(`Checking appointment ${app.id}: ${appointmentDate} === ${selectedDateStr}`);
+        return appointmentDate === selectedDateStr;
+      });
+      
+      console.log(`Found ${filteredAppointments.length} appointments for ${selectedDateStr}`);
+      setAppointments(filteredAppointments);
+    } else {
+      // If no date selected, show all appointments
+      setAppointments(allAppointments);
+    }
+  }, [selectedDate, allAppointments]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setTabValue(newValue);
@@ -390,8 +429,8 @@ export default function AppointmentsPage() {
                               {hourAppointments.map(app => (
                                 <Chip
                                   key={app.id}
-                                  label={`${app.user?.firstName || 'Cliente'} ${app.user?.lastName || ''} - ${app.service?.name || 'Servicio'}`}
-                                  size="small"
+                                  label={`${app.user?.first_name || 'Cliente'} ${app.user?.last_name || ''} - ${app.service?.name || 'Servicio'}`}
+                                  size="medium"
                                   color={statusColors[app.status] as any}
                                   sx={{ mb: 0.5, width: '100%', justifyContent: 'flex-start' }}
                                   icon={statusIcons[app.status]}
