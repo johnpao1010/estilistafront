@@ -23,8 +23,8 @@ import { useAuth } from '../../contexts/AuthContext';
 // Define validation schema with Zod
 const registerSchema = z
   .object({
-    firstName: z.string().min(2, 'First name must be at least 2 characters'),
-    lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+    first_name: z.string().min(2, 'First name must be at least 2 characters'),
+    last_name: z.string().min(2, 'Last name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
     phone: z.string().optional(),
     password: z
@@ -60,8 +60,8 @@ export default function RegisterPage() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       password: '',
@@ -84,8 +84,8 @@ export default function RegisterPage() {
 
     try {
       await registerUser({
-        firstName: data.firstName,
-        lastName: data.lastName,
+        first_name: data.first_name,
+        last_name: data.last_name,
         email: data.email,
         phone: data.phone,
         password: data.password,
@@ -110,7 +110,7 @@ export default function RegisterPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ width: '100%' }}>
         <Box sx={{ width: { xs: '100%', sm: '50%' }, pr: { sm: 1 } }}>
           <Controller
-            name="firstName"
+            name="first_name"
             control={control}
             render={({ field }) => (
               <TextField
@@ -121,8 +121,8 @@ export default function RegisterPage() {
                 id="first_name"
                 label="First Name"
                 autoFocus
-                error={!!errors.firstName}
-                helperText={errors.firstName?.message}
+                error={!!errors.first_name}
+                helperText={errors.first_name?.message}
                 disabled={isLoading}
               />
             )}
@@ -130,7 +130,7 @@ export default function RegisterPage() {
         </Box>
         <Box sx={{ width: { xs: '100%', sm: '50%' }, pl: { sm: 1 } }}>
           <Controller
-            name="lastName"
+            name="last_name"
             control={control}
             render={({ field }) => (
               <TextField
@@ -140,8 +140,8 @@ export default function RegisterPage() {
                 id="last_name"
                 label="Last Name"
                 autoComplete="family-name"
-                error={!!errors.lastName}
-                helperText={errors.lastName?.message}
+                error={!!errors.last_name}
+                helperText={errors.last_name?.message}
                 disabled={isLoading}
               />
             )}
