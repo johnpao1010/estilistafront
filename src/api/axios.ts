@@ -37,9 +37,11 @@ try {
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         
-        // Clear auth data and redirect to login
+        // Clear auth data and redirect to login only if not already on login page
         removeToken();
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
 
       return Promise.reject(error);

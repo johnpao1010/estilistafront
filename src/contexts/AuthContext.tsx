@@ -41,9 +41,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       console.log('=== CURRENT USER ===', currentUser);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching current user:', err);
-      setError('Error al obtener información del usuario');
+      
+      // Don't set error for 401 (unauthorized) - this is expected when not logged in
+      if (err.response?.status !== 401) {
+        setError('Error al obtener información del usuario');
+      }
+      
       setUser(null);
     } finally {
       setLoading(false);
