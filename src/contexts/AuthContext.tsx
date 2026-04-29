@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { getCurrentUser, login, logout } from '../services/auth/auth.service';
 import type { AuthResponse } from '../services/auth/auth.service';
+import { getToken } from '../utils/auth';
 
 type User = AuthResponse['user'];
 
@@ -81,7 +82,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchCurrentUser();
+    // Only fetch current user if token exists
+    const token = getToken();
+    if (token) {
+      fetchCurrentUser();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const value: AuthContextType = {
