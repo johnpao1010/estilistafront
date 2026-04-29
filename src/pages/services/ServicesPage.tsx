@@ -22,17 +22,11 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  FormControl,
-  InputLabel,
-  Select,
-  OutlinedInput,
-  FormHelperText,
   Switch,
   FormControlLabel,
   CircularProgress as MuiCircularProgress,
   Alert as MuiAlert
 } from '@mui/material';
-import type { SelectChangeEvent } from '@mui/material/Select';
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -101,7 +95,7 @@ export default function ServicesPage() {
 
   const isEditMode = !!selectedService;
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -173,14 +167,7 @@ export default function ServicesPage() {
     }));
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
+    
   const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setFormData(prev => ({

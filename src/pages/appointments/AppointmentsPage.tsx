@@ -78,7 +78,7 @@ const statusIcons = {
 };
 
 export default function AppointmentsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [tabValue, setTabValue] = useState('hoy');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -285,6 +285,44 @@ export default function AppointmentsPage() {
     setNewAppointmentDialog(true);
   };
 
+  const handleHourSlotClick = (hour: number, hasAppointments: boolean) => {
+    // Check if slot already has appointments
+    if (hasAppointments) {
+      return; // Don't allow booking if slot is occupied
+    }
+
+    // Calculate current time and slot time
+    const now = new Date();
+    const currentDate = selectedDate || now;
+    const slotDateTime = new Date(currentDate);
+    slotDateTime.setHours(hour, 0, 0, 0);
+
+    // Check if slot is at least 2 hours in the future
+    const twoHoursFromNow = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+    
+    if (slotDateTime <= twoHoursFromNow) {
+      // Show warning message - could use a toast or alert
+      alert('Las citas deben agendarse con al menos 2 horas de anticipación');
+      return;
+    }
+
+    // Format date and time for the appointment form
+    const formattedDate = slotDateTime.toISOString().split('T')[0];
+    const formattedTime = `${hour.toString().padStart(2, '0')}:00`;
+
+    // Reset new appointment form and set the date and time
+    setNewAppointment({
+      serviceId: '',
+      employeeId: '',
+      appointmentDate: formattedDate,
+      startTime: formattedTime,
+      notes: ''
+    });
+    
+    // Open the new appointment dialog
+    setNewAppointmentDialog(true);
+  };
+
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
@@ -480,7 +518,18 @@ export default function AppointmentsPage() {
                         console.log(`Found ${hourAppointments.length} appointments for hour ${hour}`);
                         
                         return (
-                          <Card key={hour} sx={{ minHeight: 150 }}>
+                          <Card 
+                            key={hour} 
+                            sx={{ 
+                              minHeight: 150,
+                              cursor: hourAppointments.length === 0 ? 'pointer' : 'default',
+                              '&:hover': hourAppointments.length === 0 ? {
+                                backgroundColor: 'action.hover',
+                                boxShadow: 4
+                              } : {}
+                            }}
+                            onClick={() => handleHourSlotClick(hour, hourAppointments.length > 0)}
+                          >
                             <CardContent>
                               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                 <Typography variant="h6" color="primary" sx={{ mr: 1 }}>

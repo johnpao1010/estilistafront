@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { styled, useTheme, type Theme, type CSSObject } from '@mui/material/styles';
+import { styled, type Theme, type CSSObject } from '@mui/material/styles';
 import {
   Box,
   CssBaseline,
@@ -121,7 +121,6 @@ const getMenuItems = (userRole?: string) => {
 };
 
 export default function DashboardLayout() {
-  const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();

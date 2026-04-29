@@ -7,6 +7,7 @@ type User = AuthResponse['user'];
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isLoading: boolean;
   error: string | null;
   refetchUser: () => Promise<void>;
   login: (email: string, password: string) => Promise<AuthResponse>;
@@ -81,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     loading,
+    isLoading: loading,
     error,
     refetchUser: fetchCurrentUser,
     login: handleLogin,
