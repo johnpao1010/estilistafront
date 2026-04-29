@@ -25,7 +25,6 @@ export const productionConfig: EnvironmentConfig = {
 // Function to get current environment configuration
 export const getEnvironmentConfig = (): EnvironmentConfig => {
   // Check environment using multiple methods
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
   
   // For React apps, we can also check if there's a custom environment variable
