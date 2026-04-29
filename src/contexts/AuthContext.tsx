@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { getCurrentUser, login, logout } from '../services/auth/auth.service';
+import { getCurrentUser, login, logout, register } from '../services/auth/auth.service';
 import type { AuthResponse } from '../services/auth/auth.service';
 import { getToken } from '../utils/auth';
 
@@ -13,6 +13,7 @@ interface AuthContextType {
   refetchUser: () => Promise<void>;
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
+  register: (userData: any) => Promise<AuthResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,6 +82,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const handleRegister = async (userData: any): Promise<AuthResponse> => {
+    try {
+      setError(null);
+      const authResponse = await register(userData);
+      setUser(authResponse.user);
+      return authResponse;
+    } catch (err: any) {
+      console.error('Register error:', err);
+      setError(err.message || 'Error al registrarse');
+      throw err;
+    }
+  };
+
   useEffect(() => {
     // Only fetch current user if token exists
     const token = getToken();
@@ -99,6 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refetchUser: fetchCurrentUser,
     login: handleLogin,
     logout: handleLogout,
+    register: handleRegister,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
