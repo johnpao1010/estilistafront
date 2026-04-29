@@ -118,7 +118,7 @@ export default function RegisterPage() {
                 autoComplete="given-name"
                 required
                 fullWidth
-                id="firstName"
+                id="first_name"
                 label="First Name"
                 autoFocus
                 error={!!errors.firstName}
@@ -137,7 +137,7 @@ export default function RegisterPage() {
                 {...field}
                 required
                 fullWidth
-                id="lastName"
+                id="last_name"
                 label="Last Name"
                 autoComplete="family-name"
                 error={!!errors.lastName}
