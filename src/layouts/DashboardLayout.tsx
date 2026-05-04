@@ -116,17 +116,17 @@ const getMenuItems = (userRole?: string) => {
   
   console.log('=== DEBUG: All menu items ===', allItems.map(item => item.text));
   
-  // Hide Users section for employee and user roles
-  if (userRole === 'employee' || userRole === 'user') {
-    const filtered = allItems.filter(item => item.text !== 'Users');
-    console.log('=== DEBUG: Filtered for employee/user ===', filtered.map(item => item.text));
-    return filtered;
-  }
-  
-  // Hide Services section for user role
+  // Hide Services and Users section for user role (most restrictive first)
   if (userRole === 'user') {
     const filtered = allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
     console.log('=== DEBUG: Filtered for user ===', filtered.map(item => item.text));
+    return filtered;
+  }
+  
+  // Hide Users section for employee role
+  if (userRole === 'employee') {
+    const filtered = allItems.filter(item => item.text !== 'Users');
+    console.log('=== DEBUG: Filtered for employee ===', filtered.map(item => item.text));
     return filtered;
   }
   
