@@ -105,6 +105,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 
 const getMenuItems = (userRole?: string) => {
+  console.log('=== DEBUG: getMenuItems called with role ===', userRole);
+  
   const allItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Appointments', icon: <AppointmentsIcon />, path: '/appointments' },
@@ -112,16 +114,23 @@ const getMenuItems = (userRole?: string) => {
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
   ];
   
+  console.log('=== DEBUG: All menu items ===', allItems.map(item => item.text));
+  
   // Hide Users section for employee and user roles
   if (userRole === 'employee' || userRole === 'user') {
-    return allItems.filter(item => item.text !== 'Users');
+    const filtered = allItems.filter(item => item.text !== 'Users');
+    console.log('=== DEBUG: Filtered for employee/user ===', filtered.map(item => item.text));
+    return filtered;
   }
   
   // Hide Services section for user role
   if (userRole === 'user') {
-    return allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
+    const filtered = allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
+    console.log('=== DEBUG: Filtered for user ===', filtered.map(item => item.text));
+    return filtered;
   }
   
+  console.log('=== DEBUG: No filtering applied ===', allItems.map(item => item.text));
   return allItems;
 };
 
@@ -131,6 +140,9 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  console.log('=== DEBUG: User object in DashboardLayout ===', user);
+  console.log('=== DEBUG: User role ===', user?.role);
 
   const handleDrawerOpen = () => {
     setOpen(true);
