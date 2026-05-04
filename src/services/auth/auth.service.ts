@@ -113,11 +113,34 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 
 export const register = async (userData: RegisterData): Promise<AuthResponse> => {
   try {
+    console.log('=== REGISTER REQUEST ===', userData);
     const response = await api.post<AuthResponse>('/auth/register', userData);
     
-    if (response.data && response.data.token && response.data.user) {
-      const { token, user } = response.data;
-      
+    console.log('=== REGISTER RAW RESPONSE ===', response);
+    console.log('=== REGISTER RESPONSE DATA ===', response.data);
+    
+    if (!response.data) {
+      console.error('No response data received');
+      throw new Error('No response from server');
+    }
+    
+    // Handle different response structures like login does
+    let responseData: any = response.data;
+    
+    // If the response is nested under a 'data' property
+    if (responseData && (responseData as any).data) {
+      responseData = (responseData as any).data;
+      console.log('=== REGISTER NESTED RESPONSE DATA ===', responseData);
+    }
+    
+    // Check for token in different possible locations
+    const token = (responseData as any).token || (responseData as any).access_token || (responseData as any).accessToken;
+    const user = (responseData as any).user || (responseData as any).data?.user;
+    
+    console.log('=== REGISTER EXTRACTED TOKEN ===', token);
+    console.log('=== REGISTER EXTRACTED USER ===', user);
+    
+    if (token && user) {
       // Store token and user data
       setToken(token);
       setUser(user);
@@ -125,10 +148,11 @@ export const register = async (userData: RegisterData): Promise<AuthResponse> =>
       // Set default authorization header
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      return response.data;
+      return { token, user };
     }
     
-    throw new Error('Invalid response from server');
+    console.error('Missing token or user in registration response:', responseData);
+    throw new Error('Invalid response from server - missing token or user data');
   } catch (error) {
     console.error('Registration error:', error);
     throw error;
