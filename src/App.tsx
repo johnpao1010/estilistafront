@@ -14,6 +14,8 @@ import AuthLayout from './layouts/AuthLayout';
 // Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import UsersPage from './pages/users/UsersPage';
 import AppointmentsPage from './pages/appointments/AppointmentsPage';
@@ -137,6 +139,22 @@ const App: React.FC = () => {
                 element={
                   <AuthRoute title="Registro" subtitle="Crea una nueva cuenta">
                     <RegisterPage />
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <AuthRoute title="Recuperar contraseña" subtitle="Ingresa tu correo para continuar">
+                    <ForgotPasswordPage />
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <AuthRoute title="Restablecer contraseña" subtitle="Crea una nueva contraseña para tu cuenta">
+                    <ResetPasswordPage />
                   </AuthRoute>
                 }
               />

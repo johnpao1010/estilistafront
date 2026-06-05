@@ -37,10 +37,15 @@ try {
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         
-        // Clear auth data and redirect to login only if not already on login page
+        const currentPath = window.location.hash
+          ? window.location.hash.replace('#', '')
+          : window.location.pathname;
+        const publicAuthRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+        const isPublicAuthRoute = publicAuthRoutes.some((route) => currentPath.startsWith(route));
+
         removeToken();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        if (!isPublicAuthRoute) {
+          window.location.href = '#/login';
         }
       }
 

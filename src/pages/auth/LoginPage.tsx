@@ -132,7 +132,7 @@ export default function LoginPage() {
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
         <Link component={RouterLink} to="/forgot-password" variant="body2">
-          Forgot password?
+          ¿Olvidaste tu contraseña?
         </Link>
       </Box>
 

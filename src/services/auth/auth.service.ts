@@ -160,6 +160,53 @@ export const getCurrentUser = async (): Promise<AuthResponse['user']> => {
   }
 };
 
+export interface ForgotPasswordResponse {
+  message: string;
+  email?: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  password: string;
+}
+
+const getApiErrorMessage = (error: any, fallback: string): string => {
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+  if (error.response?.status === 404) {
+    return 'No existe una cuenta con ese correo electrónico';
+  }
+  if (error.request && !error.response) {
+    return 'No se pudo conectar con el servidor';
+  }
+  return fallback;
+};
+
+export const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
+  try {
+    const response = await api.post('/auth/forgot-password', { email });
+    const responseData = response.data?.data ?? response.data;
+
+    return {
+      message: responseData?.message || 'Correo verificado correctamente',
+      email: responseData?.email || email,
+    };
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    throw new Error(getApiErrorMessage(error, 'No se pudo verificar el correo electrónico'));
+  }
+};
+
+export const resetPassword = async (data: ResetPasswordData): Promise<void> => {
+  try {
+    await api.post('/auth/reset-password', data);
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    throw new Error(getApiErrorMessage(error, 'No se pudo actualizar la contraseña'));
+  }
+};
+
 export const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
   try {
     await api.post('/auth/change-password', { currentPassword, newPassword });

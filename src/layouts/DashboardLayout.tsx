@@ -104,6 +104,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   })
 );
 
+const normalizeRole = (role?: string) => role?.toLowerCase().trim() ?? '';
+
 const getMenuItems = (userRole?: string) => {
   const allItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
@@ -111,17 +113,13 @@ const getMenuItems = (userRole?: string) => {
     { text: 'Services', icon: <ServicesIcon />, path: '/services' },
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
   ];
-  
-  // Hide Services and Users section for user role (most restrictive first)
-  if (userRole === 'user') {
-    return allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
+
+  const role = normalizeRole(userRole);
+
+  if (role === 'user' || role === 'employee') {
+    return allItems.filter((item) => item.text !== 'Services' && item.text !== 'Users');
   }
-  
-  // Hide Services and Users section for employee role
-  if (userRole === 'employee') {
-    return allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
-  }
-  
+
   return allItems;
 };
 
