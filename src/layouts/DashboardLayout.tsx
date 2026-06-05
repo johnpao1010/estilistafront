@@ -117,9 +117,9 @@ const getMenuItems = (userRole?: string) => {
     return allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
   }
   
-  // Hide Users section for employee role
+  // Hide Services and Users section for employee role
   if (userRole === 'employee') {
-    return allItems.filter(item => item.text !== 'Users');
+    return allItems.filter(item => item.text !== 'Services' && item.text !== 'Users');
   }
   
   return allItems;
