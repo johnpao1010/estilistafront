@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Container, Paper, Typography, useTheme } from '@mui/material';
+import { Box, Container, Paper, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import authClockImage from '../assets/portada.jpeg';
 
@@ -48,8 +48,6 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
-  const theme = useTheme();
-
   return (
     <AuthContainer maxWidth={false}>
       <StyledPaper elevation={3}>
