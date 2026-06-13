@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { Box, Container, Paper, Typography, useTheme } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import authClockImage from '../assets/portada.jpeg';
 
 const AuthContainer = styled(Container)(({ theme }) => ({
+
   minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
@@ -31,10 +33,11 @@ const Logo = styled('div')(({ theme }) => ({
   flexDirection: 'column',
   alignItems: 'center',
   marginBottom: theme.spacing(4),
-  '& svg': {
-    width: 60,
-    height: 60,
+  '& img': {
+    width: 90,
+    height: 90,
     marginBottom: theme.spacing(1),
+    objectFit: 'contain',
   },
 }));
 
@@ -51,12 +54,9 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
     <AuthContainer maxWidth={false}>
       <StyledPaper elevation={3}>
         <Logo>
-          <svg viewBox="0 0 24 24" fill={theme.palette.primary.main}>
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-            <path d="M13 7h-2v6h6v-2h-4z" />
-          </svg>
+          <img src={authClockImage} alt="Pao W Studio logo" />
           <Typography variant="h4" component="h1" color="primary" fontWeight="bold">
-            Salon Belleza
+            Pao W Studio    
           </Typography>
         </Logo>
 
@@ -78,7 +78,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       
       <Box mt={4} textAlign="center">
         <Typography variant="body2" color="textSecondary">
-          © {new Date().getFullYear()} Salon Belleza. All rights reserved.
+          © {new Date().getFullYear()} Pao W Studio. All rights reserved.
         </Typography>
       </Box>
     </AuthContainer>
