@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, Link as RouterLink, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,18 +35,14 @@ const resetPasswordSchema = z
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-interface ResetPasswordLocationState {
-  email?: string;
-}
-
 export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const email = (location.state as ResetPasswordLocationState | null)?.email;
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
 
   const {
     control,
@@ -60,8 +56,19 @@ export default function ResetPasswordPage() {
     },
   });
 
-  if (!email) {
-    return <Navigate to="/forgot-password" replace />;
+  if (!token) {
+    return (
+      <Box sx={{ width: '100%' }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          El enlace para restablecer la contraseña no es válido.
+        </Alert>
+        <Box sx={{ textAlign: 'center' }}>
+          <Link component={RouterLink} to="/forgot-password" variant="body2">
+            Solicitar un nuevo enlace
+          </Link>
+        </Box>
+      </Box>
+    );
   }
 
   const onSubmit = async (data: ResetPasswordFormData) => {
@@ -70,7 +77,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      await resetPassword({ email, password: data.password });
+      await resetPassword({ token, password: data.password });
       setSuccess('Tu contraseña fue actualizada correctamente.');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err: any) {
@@ -95,16 +102,8 @@ export default function ResetPasswordPage() {
       )}
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Establece una nueva contraseña para <strong>{email}</strong>.
+        Establece una nueva contraseña para tu cuenta.
       </Typography>
-
-      <TextField
-        margin="normal"
-        fullWidth
-        label="Correo electrónico"
-        value={email}
-        disabled
-      />
 
       <Controller
         name="password"
