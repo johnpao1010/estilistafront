@@ -205,7 +205,7 @@ export default function ServicesPage() {
         
         if (isEditMode && selectedService) {
           // Update existing service
-          await api.put(`/services/${selectedService.id}`, serviceData);
+          await api.patch(`/services/${selectedService.id}`, serviceData);
         } else {
           // Create new service
           await api.post('/services/', serviceData);
@@ -225,8 +225,18 @@ export default function ServicesPage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    console.log('Eliminar servicio:', selectedService?.id);
+  const handleDeleteConfirm = async () => {
+    if (selectedService) {
+      try {
+        await api.delete(`/services/${selectedService.id}`);
+        const lastPage = Math.max(0, Math.ceil((services.length - 1) / rowsPerPage) - 1);
+        if (page > lastPage) setPage(lastPage);
+        fetchServices();
+      } catch (error) {
+        console.error('Error al eliminar el servicio:', error);
+        setError('Ocurrió un error al eliminar el servicio. Por favor, intente de nuevo.');
+      }
+    }
     setDeleteDialogOpen(false);
     handleCloseMenu();
   };
@@ -436,7 +446,7 @@ export default function ServicesPage() {
                   <Switch
                     checked={formData.is_active}
                     onChange={handleSwitchChange}
-                    name="active"
+                    name="is_active"
                     color="primary"
                   />
                 }

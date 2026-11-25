@@ -1,5 +1,5 @@
 import api from '../../api/axios';
-import { setToken, setUser } from '../../utils/auth';
+import { setToken, setUser, removeToken, removeUser } from '../../utils/auth';
 
 export interface LoginCredentials {
   email: string;
@@ -16,7 +16,7 @@ export interface RegisterData extends LoginCredentials {
 export interface AuthResponse {
   token: string;
   user: {
-    id: number;
+    id: string;
     email: string;
     firstName: string;
     lastName: string;
@@ -25,12 +25,29 @@ export interface AuthResponse {
   };
 }
 
+interface ApiUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  phone?: string;
+}
+
+const mapUser = (user: ApiUser): AuthResponse['user'] => ({
+  id: user.id,
+  email: user.email,
+  firstName: user.firstName || user.first_name || '',
+  lastName: user.lastName || user.last_name || '',
+  role: user.role || 'user',
+  phone: user.phone,
+});
+
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   try {
-    console.log('Attempting login with credentials:', credentials);
     const response = await api.post('/auth/login', credentials);
-    
-    console.log('Raw login response:', response);
     
     if (!response) {
       throw new Error('No response from server');
@@ -43,8 +60,6 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
     if (responseData && responseData.data) {
       responseData = responseData.data;
     }
-    
-    console.log('Processed login response data:', responseData);
     
     if (!responseData) {
       console.error('No data in response:', response);
@@ -60,19 +75,10 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
       throw new Error('Invalid response format: missing token or user data');
     }
     
-    console.log('Login successful, user:', user.email);
-    
     // Create the auth response with the expected format
     const authResponse: AuthResponse = {
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName || user.first_name || '',
-        lastName: user.lastName || user.last_name || '',
-        role: user.role || 'user',
-        phone: user.phone
-      }
+      user: mapUser(user),
     };
     
     // Store token and user data
@@ -133,13 +139,14 @@ export const register = async (userData: RegisterData): Promise<AuthResponse> =>
     
     if (token && user) {
       // Store token and user data
+      const mappedUser = mapUser(user);
       setToken(token);
-      setUser(user);
+      setUser(mappedUser);
       
       // Set default authorization header
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      return { token, user };
+      return { token, user: mappedUser };
     }
     
     console.error('Missing token or user in registration response:', responseData);
@@ -152,8 +159,12 @@ export const register = async (userData: RegisterData): Promise<AuthResponse> =>
 
 export const getCurrentUser = async (): Promise<AuthResponse['user']> => {
   try {
-    const response = await api.get<AuthResponse>('/auth/me');
-    return response.data.user;
+    const response = await api.get('/auth/me');
+    const user = response.data?.data?.user ?? response.data?.user;
+    if (!user) {
+      throw new Error('Invalid response format: missing user data');
+    }
+    return mapUser(user);
   } catch (error) {
     console.error('Failed to fetch current user:', error);
     throw error;
@@ -209,7 +220,7 @@ export const resetPassword = async (data: ResetPasswordData): Promise<void> => {
 
 export const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
   try {
-    await api.post('/auth/change-password', { currentPassword, newPassword });
+    await api.patch('/auth/update-password', { currentPassword, newPassword });
   } catch (error) {
     console.error('Update password error:', error);
     throw error;
@@ -222,13 +233,13 @@ export const logout = async (): Promise<void> => {
     // await api.post('/auth/logout');
     
     // Limpiar el token y los datos del usuario del almacenamiento local
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    removeToken();
+    removeUser();
   } catch (error) {
     console.error('Logout error:', error);
     // Asegurarse de limpiar el almacenamiento local incluso si hay un error
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    removeToken();
+    removeUser();
     throw error;
   }
 };

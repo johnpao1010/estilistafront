@@ -58,15 +58,9 @@ export const userService = {
     return response.data.data.user;
   },
 
-  // Create a new user
-  async createUser(userData: CreateUserData): Promise<User> {
-    const response = await api.post<ApiResponse<{ user: User }>>('/users', userData);
-    return response.data.data.user;
-  },
-
   // Update a user
   async updateUser(id: string, userData: UpdateUserData): Promise<User> {
-    const response = await api.put<ApiResponse<{ user: User }>>(`/users/${id}`, userData);
+    const response = await api.patch<ApiResponse<{ user: User }>>(`/users/${id}`, userData);
     return response.data.data.user;
   },
 
