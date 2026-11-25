@@ -205,7 +205,7 @@ export default function AppointmentsPage() {
     };
 
     loadData();
-  }, [user]);
+  }, [user, isEmployee]);
 
   // Filter appointments by selected date
   useEffect(() => {

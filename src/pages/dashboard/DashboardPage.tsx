@@ -109,7 +109,7 @@ export default function DashboardPage() {
     };
 
     loadDashboardStats();
-  }, [user]);
+  }, [user, isEmployee]);
 
   const appointmentsTitle = isEmployee ? 'Mis Citas Hoy' : 'Citas Hoy';
 
