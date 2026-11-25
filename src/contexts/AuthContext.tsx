@@ -154,6 +154,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const isBusinessAdmin =
+    user?.role === 'admin' || currentBusiness?.role === 'owner' || currentBusiness?.role === 'admin';
+
   const value: AuthContextType = {
     user,
     loading,
@@ -166,8 +169,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     businesses,
     currentBusiness,
     selectBusiness,
-    isBusinessAdmin: user?.role === 'admin' || currentBusiness?.role === 'owner' || currentBusiness?.role === 'admin',
-    isEmployee: user?.role === 'employee' || currentBusiness?.role === 'employee',
+    isBusinessAdmin,
+    isEmployee: !isBusinessAdmin && (user?.role === 'employee' || currentBusiness?.role === 'employee'),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
