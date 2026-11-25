@@ -30,6 +30,7 @@ type AuthRouteProps = {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  allowAuthenticated?: boolean;
 };
 
 // Create a client for React Query
@@ -92,7 +93,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 };
 
 // Componente de ruta de autenticación
-const AuthRoute: React.FC<AuthRouteProps> = ({ children, title, subtitle = '' }) => {
+const AuthRoute: React.FC<AuthRouteProps> = ({ children, title, subtitle = '', allowAuthenticated = false }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -103,7 +104,7 @@ const AuthRoute: React.FC<AuthRouteProps> = ({ children, title, subtitle = '' })
     );
   }
 
-  if (user) {
+  if (user && !allowAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -153,7 +154,7 @@ const App: React.FC = () => {
               <Route
                 path="/reset-password"
                 element={
-                  <AuthRoute title="Restablecer contraseña" subtitle="Crea una nueva contraseña para tu cuenta">
+                  <AuthRoute title="Restablecer contraseña" subtitle="Crea una nueva contraseña para tu cuenta" allowAuthenticated>
                     <ResetPasswordPage />
                   </AuthRoute>
                 }
