@@ -37,18 +37,25 @@ export const removeUser = (): void => {
   }
 };
 
+// The selected business is kept per tab; localStorage only provides the default for new tabs
+let activeBusinessId: string | null = null;
+
+export const getActiveBusinessId = (): string | null => activeBusinessId ?? getBusinessId();
+
 export const getBusinessId = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(BUSINESS_KEY);
 };
 
 export const setBusinessId = (businessId: string): void => {
+  activeBusinessId = businessId;
   if (typeof window !== 'undefined') {
     localStorage.setItem(BUSINESS_KEY, businessId);
   }
 };
 
 export const removeBusinessId = (): void => {
+  activeBusinessId = null;
   if (typeof window !== 'undefined') {
     localStorage.removeItem(BUSINESS_KEY);
   }
