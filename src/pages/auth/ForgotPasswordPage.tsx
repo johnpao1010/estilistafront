@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,8 +22,8 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const {
     control,
@@ -42,11 +42,9 @@ export default function ForgotPasswordPage() {
 
     try {
       const response = await forgotPassword(data.email);
-      navigate('/reset-password', {
-        state: { email: response.email || data.email },
-      });
+      setSuccess(response.message);
     } catch (err: any) {
-      setError(err.message || 'No se pudo verificar el correo electrónico');
+      setError(err.message || 'No se pudo enviar el enlace de recuperación');
     } finally {
       setIsLoading(false);
     }
@@ -60,8 +58,14 @@ export default function ForgotPasswordPage() {
         </Alert>
       )}
 
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          {success}
+        </Alert>
+      )}
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Ingresa el correo asociado a tu cuenta. Si existe en el sistema, podrás restablecer tu contraseña.
+        Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.
       </Typography>
 
       <Controller
@@ -79,7 +83,7 @@ export default function ForgotPasswordPage() {
             autoFocus
             error={!!errors.email}
             helperText={errors.email?.message}
-            disabled={isLoading}
+            disabled={isLoading || !!success}
           />
         )}
       />
@@ -89,9 +93,9 @@ export default function ForgotPasswordPage() {
         fullWidth
         variant="contained"
         sx={{ mt: 3, mb: 2, py: 1.5 }}
-        disabled={isLoading}
+        disabled={isLoading || !!success}
       >
-        {isLoading ? <CircularProgress size={24} /> : 'Continuar'}
+        {isLoading ? <CircularProgress size={24} /> : 'Enviar enlace'}
       </Button>
 
       <Box sx={{ textAlign: 'center' }}>
