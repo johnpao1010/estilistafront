@@ -229,6 +229,8 @@ export default function ServicesPage() {
     if (selectedService) {
       try {
         await api.delete(`/services/${selectedService.id}`);
+        const lastPage = Math.max(0, Math.ceil((services.length - 1) / rowsPerPage) - 1);
+        if (page > lastPage) setPage(lastPage);
         fetchServices();
       } catch (error) {
         console.error('Error al eliminar el servicio:', error);
