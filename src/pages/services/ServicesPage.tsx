@@ -444,7 +444,7 @@ export default function ServicesPage() {
                   <Switch
                     checked={formData.is_active}
                     onChange={handleSwitchChange}
-                    name="active"
+                    name="is_active"
                     color="primary"
                   />
                 }
