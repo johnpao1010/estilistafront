@@ -78,7 +78,7 @@ const statusIcons = {
 };
 
 export default function AppointmentsPage() {
-  const { user } = useAuth();
+  const { user, isEmployee } = useAuth();
   const [tabValue, setTabValue] = useState('hoy');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -112,7 +112,7 @@ export default function AppointmentsPage() {
           console.log('=== USER ROLE ===', user?.role);
           
           let appointmentsData;
-          if (user?.role === 'employee') {
+          if (user && isEmployee) {
             // Load all employee's appointments (no date filter)
             const employeeId = user.id.toString(); // Use current user's ID
             console.log('=== LOADING ALL EMPLOYEE APPOINTMENTS FOR ===', employeeId);
@@ -205,7 +205,7 @@ export default function AppointmentsPage() {
     };
 
     loadData();
-  }, [user]);
+  }, [user, isEmployee]);
 
   // Filter appointments by selected date
   useEffect(() => {

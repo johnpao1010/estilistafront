@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
-import { getToken, removeToken } from '../utils/auth';
+import { getActiveBusinessId, getToken, removeToken } from '../utils/auth';
 import { config } from '../config/environments';
 
 const API_BASE_URL = config.apiUrl;
@@ -19,6 +19,10 @@ try {
       const token = getToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      const businessId = getActiveBusinessId();
+      if (businessId) {
+        config.headers['X-Business-Id'] = businessId;
       }
       return config;
     },
