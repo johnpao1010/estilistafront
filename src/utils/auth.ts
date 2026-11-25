@@ -1,5 +1,6 @@
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_data';
+const BUSINESS_KEY = 'business_id';
 
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -36,6 +37,23 @@ export const removeUser = (): void => {
   }
 };
 
+export const getBusinessId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(BUSINESS_KEY);
+};
+
+export const setBusinessId = (businessId: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BUSINESS_KEY, businessId);
+  }
+};
+
+export const removeBusinessId = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(BUSINESS_KEY);
+  }
+};
+
 export const isAuthenticated = (): boolean => {
   return getToken() !== null;
 };
@@ -43,5 +61,6 @@ export const isAuthenticated = (): boolean => {
 export const logout = (): void => {
   removeToken();
   removeUser();
+  removeBusinessId();
   window.location.href = '/login';
 };

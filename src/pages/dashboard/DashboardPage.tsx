@@ -26,7 +26,6 @@ const formatDateLocal = (date: Date): string => {
 const getAppointmentDate = (appointment: Appointment & { appointment_date?: string }): string =>
   appointment.appointment_date || appointment.appointmentDate || '';
 
-const isEmployeeRole = (role?: string): boolean => role?.toLowerCase() === 'employee';
 
 const StatCard = ({ title, value, icon: Icon, color = 'primary', loading = false }: StatCardProps) => (
   <Card sx={{ height: '100%' }}>
@@ -62,7 +61,7 @@ const StatCard = ({ title, value, icon: Icon, color = 'primary', loading = false
 );
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isEmployee } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -82,7 +81,7 @@ export default function DashboardPage() {
         const usersPromise = userService.getUsers().catch(() => []);
         const servicesPromise = getAllServices().catch(() => []);
 
-        const appointmentsPromise = isEmployeeRole(user.role)
+        const appointmentsPromise = isEmployee
           ? getEmployeeSchedule(user.id.toString(), today, today).catch(() => [])
           : getAllAppointments()
               .then((response) => response.data || [])
@@ -112,7 +111,7 @@ export default function DashboardPage() {
     loadDashboardStats();
   }, [user]);
 
-  const appointmentsTitle = isEmployeeRole(user?.role) ? 'Mis Citas Hoy' : 'Citas Hoy';
+  const appointmentsTitle = isEmployee ? 'Mis Citas Hoy' : 'Citas Hoy';
 
   return (
     <Box>

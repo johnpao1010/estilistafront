@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { getCurrentUser, login, logout, register } from '../services/auth/auth.service';
 import type { AuthResponse } from '../services/auth/auth.service';
-import { getToken } from '../utils/auth';
+import { getBusinessId, getToken, removeBusinessId, setBusinessId } from '../utils/auth';
+import { getAllBusinesses, getMyBusinesses, type Business } from '../services/business/business.service';
 
 type User = AuthResponse['user'];
 
@@ -14,6 +15,11 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   register: (userData: any) => Promise<AuthResponse>;
+  businesses: Business[];
+  currentBusiness: Business | null;
+  selectBusiness: (businessId: string) => void;
+  isBusinessAdmin: boolean;
+  isEmployee: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +40,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [currentBusiness, setCurrentBusiness] = useState<Business | null>(null);
+
+  const selectBusiness = (businessId: string) => {
+    const business = businesses.find((item) => item.id === businessId);
+    if (business) {
+      setCurrentBusiness(business);
+      setBusinessId(business.id);
+    }
+  };
+
+  // Platform admins can manage every business; everyone else sees their memberships
+  const loadBusinesses = async (currentUser: User | null) => {
+    if (!currentUser) {
+      setBusinesses([]);
+      setCurrentBusiness(null);
+      return;
+    }
+    try {
+      const mine = await getMyBusinesses();
+      let list = mine;
+      if (currentUser.role === 'admin') {
+        const all = await getAllBusinesses();
+        const mineIds = new Set(mine.map((business) => business.id));
+        list = [...mine, ...all.filter((business) => !mineIds.has(business.id)).map((business) => ({ ...business, role: 'admin' as const }))];
+      }
+      const stored = getBusinessId();
+      const selected = list.find((business) => business.id === stored) ?? list[0] ?? null;
+      setBusinesses(list);
+      setCurrentBusiness(selected);
+      if (selected) setBusinessId(selected.id);
+      else removeBusinessId();
+    } catch (err) {
+      console.error('Error fetching businesses:', err);
+      setBusinesses([]);
+      setCurrentBusiness(null);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -41,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       
       const currentUser = await getCurrentUser();
+      await loadBusinesses(currentUser);
       setUser(currentUser);
       console.log('=== CURRENT USER ===', currentUser);
     } catch (err: any) {
@@ -61,6 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       const authResponse = await login({ email, password });
+      await loadBusinesses(authResponse.user);
       setUser(authResponse.user);
       return authResponse;
     } catch (err: any) {
@@ -74,6 +120,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await logout();
       setUser(null);
+      setBusinesses([]);
+      setCurrentBusiness(null);
       setError(null);
     } catch (err: any) {
       console.error('Logout error:', err);
@@ -86,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       const authResponse = await register(userData);
+      await loadBusinesses(authResponse.user);
       setUser(authResponse.user);
       return authResponse;
     } catch (err: any) {
@@ -114,6 +163,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login: handleLogin,
     logout: handleLogout,
     register: handleRegister,
+    businesses,
+    currentBusiness,
+    selectBusiness,
+    isBusinessAdmin: user?.role === 'admin' || currentBusiness?.role === 'owner' || currentBusiness?.role === 'admin',
+    isEmployee: user?.role === 'employee' || currentBusiness?.role === 'employee',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

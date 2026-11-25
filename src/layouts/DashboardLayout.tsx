@@ -20,6 +20,7 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  Select,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -106,7 +107,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 const normalizeRole = (role?: string) => role?.toLowerCase().trim() ?? '';
 
-const getMenuItems = (userRole?: string) => {
+const getMenuItems = (userRole: string | undefined, isBusinessAdmin: boolean) => {
   const allItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Appointments', icon: <AppointmentsIcon />, path: '/appointments' },
@@ -114,19 +115,16 @@ const getMenuItems = (userRole?: string) => {
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
   ];
 
-  const role = normalizeRole(userRole);
-
-  if (role === 'user' || role === 'employee') {
-    return allItems.filter((item) => item.text !== 'Services' && item.text !== 'Users');
-  }
-
-  return allItems;
+  // Users is platform-wide (global admin only); Services belongs to the active business
+  if (normalizeRole(userRole) === 'admin') return allItems;
+  if (isBusinessAdmin) return allItems.filter((item) => item.text !== 'Users');
+  return allItems.filter((item) => item.text !== 'Services' && item.text !== 'Users');
 };
 
 export default function DashboardLayout() {
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { user, logout } = useAuth();
+  const { user, logout, businesses, currentBusiness, selectBusiness, isBusinessAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -172,9 +170,36 @@ export default function DashboardLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Pao W Studio
-          </Typography>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            {currentBusiness?.logo_url && (
+              <Avatar src={currentBusiness.logo_url} alt={currentBusiness.name} sx={{ width: 32, height: 32 }} />
+            )}
+            {businesses.length > 1 ? (
+              <Select
+                value={currentBusiness?.id ?? ''}
+                onChange={(event) => selectBusiness(event.target.value as string)}
+                variant="standard"
+                disableUnderline
+                inputProps={{ 'aria-label': 'Seleccionar salón' }}
+                sx={{
+                  color: 'inherit',
+                  fontSize: '1.25rem',
+                  fontWeight: 500,
+                  '& .MuiSelect-icon': { color: 'inherit' },
+                }}
+              >
+                {businesses.map((business) => (
+                  <MenuItem key={business.id} value={business.id}>
+                    {business.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <Typography variant="h6" noWrap component="div">
+                {currentBusiness?.name ?? 'Pao W Studio'}
+              </Typography>
+            )}
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography variant="body1" sx={{ mr: 2 }}>
               {user?.firstName} {user?.lastName}
@@ -239,7 +264,7 @@ export default function DashboardLayout() {
         </DrawerHeader>
         <Divider />
         <List>
-          {getMenuItems(user?.role).map((item: any) => (
+          {getMenuItems(user?.role, isBusinessAdmin).map((item: any) => (
             <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
                 sx={{
@@ -267,7 +292,7 @@ export default function DashboardLayout() {
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
-        <Outlet />
+        <Outlet key={currentBusiness?.id ?? 'no-business'} />
       </Box>
     </Box>
   );

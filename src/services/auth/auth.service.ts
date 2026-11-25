@@ -1,5 +1,5 @@
 import api from '../../api/axios';
-import { setToken, setUser, removeToken, removeUser } from '../../utils/auth';
+import { setToken, setUser, removeToken, removeUser, removeBusinessId } from '../../utils/auth';
 
 export interface LoginCredentials {
   email: string;
@@ -235,11 +235,13 @@ export const logout = async (): Promise<void> => {
     // Limpiar el token y los datos del usuario del almacenamiento local
     removeToken();
     removeUser();
+    removeBusinessId();
   } catch (error) {
     console.error('Logout error:', error);
     // Asegurarse de limpiar el almacenamiento local incluso si hay un error
     removeToken();
     removeUser();
+    removeBusinessId();
     throw error;
   }
 };
