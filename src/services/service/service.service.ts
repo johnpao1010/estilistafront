@@ -20,7 +20,7 @@ export interface CreateServiceData {
 }
 
 export interface UpdateServiceData extends Partial<CreateServiceData> {
-  isActive?: boolean;
+  is_active?: boolean;
 }
 
 export const getAllServices = async (): Promise<Service[]> => {
@@ -38,10 +38,10 @@ export const getAllServices = async (): Promise<Service[]> => {
   }
 };
 
-export const getServiceById = async (id: number): Promise<Service> => {
+export const getServiceById = async (id: string): Promise<Service> => {
   try {
-    const response = await api.get<Service>(`/services/${id}`);
-    return response.data;
+    const response = await api.get(`/services/${id}`);
+    return response.data?.data?.service ?? response.data;
   } catch (error) {
     console.error(`Error fetching service with id ${id}:`, error);
     throw error;
@@ -50,25 +50,25 @@ export const getServiceById = async (id: number): Promise<Service> => {
 
 export const createService = async (data: CreateServiceData): Promise<Service> => {
   try {
-    const response = await api.post<Service>('/services', data);
-    return response.data;
+    const response = await api.post('/services', data);
+    return response.data?.data?.service ?? response.data;
   } catch (error) {
     console.error('Error creating service:', error);
     throw error;
   }
 };
 
-export const updateService = async (id: number, data: UpdateServiceData): Promise<Service> => {
+export const updateService = async (id: string, data: UpdateServiceData): Promise<Service> => {
   try {
-    const response = await api.put<Service>(`/services/${id}`, data);
-    return response.data;
+    const response = await api.patch(`/services/${id}`, data);
+    return response.data?.data?.service ?? response.data;
   } catch (error) {
     console.error(`Error updating service with id ${id}:`, error);
     throw error;
   }
 };
 
-export const deleteService = async (id: number): Promise<void> => {
+export const deleteService = async (id: string): Promise<void> => {
   try {
     await api.delete(`/services/${id}`);
   } catch (error) {

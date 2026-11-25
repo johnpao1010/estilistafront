@@ -14,16 +14,12 @@ export interface Employee {
   deletedAt?: string | null; // additional field
 }
 
-export interface CreateEmployeeData {
-  firstName: string;
-  lastName: string;
-  email: string;
+export interface UpdateEmployeeData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
   phone?: string;
-  isActive?: boolean;
-}
-
-export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {
-  isActive?: boolean;
+  is_active?: boolean;
 }
 
 export const getAllEmployees = async (): Promise<Employee[]> => {
@@ -44,27 +40,17 @@ export const getAllEmployees = async (): Promise<Employee[]> => {
 export const getEmployeeById = async (id: string): Promise<Employee> => {
   try {
     const response = await api.get(`/users/${id}`);
-    return response.data;
+    return response.data?.data?.user ?? response.data;
   } catch (error) {
     console.error(`Error fetching employee with id ${id}:`, error);
     throw error;
   }
 };
 
-export const createEmployee = async (data: CreateEmployeeData): Promise<Employee> => {
-  try {
-    const response = await api.post('/users', data);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating employee:', error);
-    throw error;
-  }
-};
-
 export const updateEmployee = async (id: string, data: UpdateEmployeeData): Promise<Employee> => {
   try {
-    const response = await api.put(`/users/${id}`, data);
-    return response.data;
+    const response = await api.patch(`/users/${id}`, data);
+    return response.data?.data?.user ?? response.data;
   } catch (error) {
     console.error(`Error updating employee with id ${id}:`, error);
     throw error;

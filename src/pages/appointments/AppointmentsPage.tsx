@@ -67,14 +67,14 @@ const statusColors = {
   scheduled: 'warning',
   completed: 'success',
   cancelled: 'error',
-  'no-show': 'error',
+  no_show: 'error',
 };
 
 const statusIcons = {
   scheduled: <PendingIcon color="warning" />,
   completed: <CheckCircleIcon color="success" />,
   cancelled: <CancelIcon color="error" />,
-  'no-show': <CancelIcon color="error" />,
+  no_show: <CancelIcon color="error" />,
 };
 
 export default function AppointmentsPage() {
@@ -82,7 +82,7 @@ export default function AppointmentsPage() {
   const [tabValue, setTabValue] = useState('hoy');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [currentAppointment, setCurrentAppointment] = useState<number | null>(null);
+  const [currentAppointment, setCurrentAppointment] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -257,7 +257,7 @@ export default function AppointmentsPage() {
     });
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, id: number) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, id: string) => {
     setAnchorEl(event.currentTarget);
     setCurrentAppointment(id);
     
@@ -757,7 +757,7 @@ export default function AppointmentsPage() {
                               {selectedAppointment.status === 'scheduled' ? 'Programada' :
                                selectedAppointment.status === 'completed' ? 'Completada' :
                                selectedAppointment.status === 'cancelled' ? 'Cancelada' :
-                               selectedAppointment.status === 'no-show' ? 'No asistió' : selectedAppointment.status}
+                               selectedAppointment.status === 'no_show' ? 'No asistió' : selectedAppointment.status}
                             </Typography>
                           </Box>
                         </Box>

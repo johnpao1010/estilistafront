@@ -1,15 +1,15 @@
 import api from '../../api/axios';
 
 export interface Appointment {
-  id: number;
-  userId: number;
-  serviceId: number;
+  id: string;
+  userId: string;
+  serviceId: string;
   service?: Service;
   user?: User;
   appointmentDate: string;
   startTime: string;
   endTime: string;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -25,7 +25,7 @@ export interface Service {
 }
 
 export interface User {
-  id: number;
+  id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -46,8 +46,8 @@ export interface AppointmentQueryParams {
   sort?: string;
   order?: 'ASC' | 'DESC';
   status?: string;
-  userId?: number;
-  serviceId?: number;
+  userId?: string;
+  serviceId?: string;
   startDate?: string;
   endDate?: string;
   search?: string;
@@ -62,16 +62,17 @@ export interface CreateAppointmentData {
 }
 
 export interface UpdateAppointmentData {
+  serviceId?: string;
+  employeeId?: string;
   appointmentDate?: string;
   startTime?: string;
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes?: string;
 }
 
 export interface TimeSlot {
-  start: string;
-  end: string;
-  available: boolean;
+  start_time: string;
+  end_time: string;
 }
 
 export const createAppointment = async (data: CreateAppointmentData): Promise<Appointment> => {
@@ -123,41 +124,48 @@ export const getAllAppointments = async (params: AppointmentQueryParams = {}): P
   }
 };
 
-export const getAppointmentById = async (id: number): Promise<Appointment> => {
+export const getAppointmentById = async (id: string): Promise<Appointment> => {
   try {
-    const response = await api.get<Appointment>(`/appointments/${id}`);
-    return response.data;
+    const response = await api.get(`/appointments/${id}`);
+    return response.data?.data?.appointment ?? response.data;
   } catch (error) {
     console.error(`Error fetching appointment with id ${id}:`, error);
     throw error;
   }
 };
 
-export const updateAppointment = async (id: number, data: UpdateAppointmentData): Promise<Appointment> => {
+export const updateAppointment = async (id: string, data: UpdateAppointmentData): Promise<Appointment> => {
   try {
-    const response = await api.put<Appointment>(`/appointments/${id}`, data);
-    return response.data;
+    const response = await api.patch(`/appointments/${id}`, {
+      service_id: data.serviceId,
+      employee_id: data.employeeId,
+      appointment_date: data.appointmentDate,
+      start_time: data.startTime,
+      status: data.status,
+      notes: data.notes,
+    });
+    return response.data?.data?.appointment ?? response.data;
   } catch (error) {
     console.error(`Error updating appointment with id ${id}:`, error);
     throw error;
   }
 };
 
-export const cancelAppointment = async (id: number): Promise<void> => {
+export const cancelAppointment = async (id: string): Promise<void> => {
   try {
-    await api.put(`/appointments/${id}/cancel`);
+    await api.delete(`/appointments/${id}/cancel`);
   } catch (error) {
     console.error(`Error cancelling appointment with id ${id}:`, error);
     throw error;
   }
 };
 
-export const getAvailableSlots = async (serviceId: number, date: string): Promise<TimeSlot[]> => {
+export const getAvailableSlots = async (serviceId: string, date: string, employeeId?: string): Promise<TimeSlot[]> => {
   try {
-    const response = await api.get<TimeSlot[]>(`/appointments/available-slots`, {
-      params: { serviceId, date },
+    const response = await api.get(`/appointments/available-slots`, {
+      params: { service_id: serviceId, employee_id: employeeId, date },
     });
-    return response.data;
+    return response.data?.data?.available_slots ?? [];
   } catch (error) {
     console.error('Error fetching available time slots:', error);
     throw error;
